@@ -24,7 +24,7 @@ public class InventoryServiceController {
     private static final Logger LOGGER = LoggerFactory.getLogger(InventoryServiceController.class);
     @Autowired
     private JmsTemplate jmsTemplate;
-    InventoryServiceController(BusinventoryRepository businventoryRepository)
+    public InventoryServiceController(BusinventoryRepository businventoryRepository)
     {
         this.businventoryRepository = businventoryRepository;
     }
@@ -34,7 +34,26 @@ public class InventoryServiceController {
         LocalDate myObj = LocalDate.now();
         businventory.setLastupdateddate(myObj.format(myFormatObj));
         businventoryRepository.save(businventory);
-        return ResponseEntity.ok("New Businventory added");
+        return ResponseEntity.ok("New Businventory for bus number: " + businventory.getBusnumber());
+    }
+
+    @GetMapping("fetchInventory/{busNumber}")
+    public ResponseEntity<Optional<Businventory>> fetchInventory(@PathVariable String busNumber){
+        return ResponseEntity.ok(businventoryRepository.findById(busNumber));
+    }
+
+    @PutMapping("editInventory")
+    public ResponseEntity<String> editInventory(@RequestBody Businventory businventory){
+        LocalDate myObj = LocalDate.now();
+        businventory.setLastupdateddate(myObj.format(myFormatObj));
+        businventoryRepository.save(businventory);
+        return ResponseEntity.ok("Edited Businventory for bus number: " + businventory.getBusnumber());
+    }
+
+    @DeleteMapping("deleteInventory/{busNumber}")
+    public ResponseEntity<String> deleteInventory(@PathVariable String busNumber){
+        businventoryRepository.deleteById(busNumber);
+        return ResponseEntity.ok("Deleted Businventory for bus number: " + busNumber);
     }
 
     @JmsListener(destination = "payment-service-queue")
@@ -49,24 +68,4 @@ public class InventoryServiceController {
         editInventory(businventory);
         jmsTemplate.convertAndSend("inventory-service-queue", message);
     }
-
-    @PutMapping("editInventory")
-    public ResponseEntity<String> editInventory(@RequestBody Businventory businventory){
-        LocalDate myObj = LocalDate.now();
-        businventory.setLastupdateddate(myObj.format(myFormatObj));
-        businventoryRepository.save(businventory);
-        return ResponseEntity.ok("Edited Businventory");
-    }
-
-    @DeleteMapping("deleteInventory/{busNumber}")
-    public ResponseEntity<String> deleteInventory(@PathVariable String busNumber){
-        businventoryRepository.deleteById(busNumber);
-        return ResponseEntity.ok("Deleted Businventory");
-    }
-
-    @GetMapping("fetchInventory/{busNumber}")
-    public ResponseEntity<Optional<Businventory>> fetchInventory(@PathVariable String busNumber){
-        return ResponseEntity.ok(businventoryRepository.findById(busNumber));
-    }
-
 }
