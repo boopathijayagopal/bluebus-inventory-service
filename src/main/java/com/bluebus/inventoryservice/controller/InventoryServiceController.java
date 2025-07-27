@@ -1,71 +1,53 @@
 package com.bluebus.inventoryservice.controller;
 
-import com.bluebus.inventoryservice.entity.Booking;
-import com.bluebus.inventoryservice.entity.Businventory;
-import com.bluebus.inventoryservice.repo.BusinventoryRepository;
-import com.google.gson.Gson;
+import com.bluebus.inventoryservice.entity.BusInventory;
+import com.bluebus.inventoryservice.service.BusInventoryService;
+import lombok.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jms.annotation.JmsListener;
-import org.springframework.jms.core.JmsTemplate;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("api/v1")
 public class InventoryServiceController {
-    DateTimeFormatter myFormatObj = DateTimeFormatter.ofPattern("dd-MM-yyyy");
-    BusinventoryRepository businventoryRepository;
     private static final Logger LOGGER = LoggerFactory.getLogger(InventoryServiceController.class);
     @Autowired
-    private JmsTemplate jmsTemplate;
-    public InventoryServiceController(BusinventoryRepository businventoryRepository)
-    {
-        this.businventoryRepository = businventoryRepository;
+    BusInventoryService busInventoryService;
+
+    public InventoryServiceController(BusInventoryService busInventoryService) {
+        this.busInventoryService = busInventoryService;
     }
 
     @PostMapping("addInventory")
-    public ResponseEntity<String> addInventory(@RequestBody Businventory businventory){
-        LocalDate myObj = LocalDate.now();
-        businventory.setLastupdateddate(myObj.format(myFormatObj));
-        businventoryRepository.save(businventory);
+    public ResponseEntity<String> addInventory(@RequestBody @NonNull BusInventory businventory){
+        LOGGER.info("entered into inventory service");
+        busInventoryService.createInventory(businventory);
+        LOGGER.info("New Businventory created for bus number: {}", businventory.getBusnumber());
         return ResponseEntity.ok("New Businventory for bus number: " + businventory.getBusnumber());
     }
 
     @GetMapping("fetchInventory/{busNumber}")
-    public ResponseEntity<Optional<Businventory>> fetchInventory(@PathVariable String busNumber){
-        return ResponseEntity.ok(businventoryRepository.findById(busNumber));
+    public ResponseEntity<Optional<BusInventory>> fetchInventory(@PathVariable String busNumber){
+        LOGGER.info("Fetching inventory for bus number: {}", busNumber);
+        return ResponseEntity.ok(busInventoryService.getBusInventry(busNumber));
     }
 
     @PutMapping("editInventory")
-    public ResponseEntity<String> editInventory(@RequestBody Businventory businventory){
-        LocalDate myObj = LocalDate.now();
-        businventory.setLastupdateddate(myObj.format(myFormatObj));
-        businventoryRepository.save(businventory);
+    public ResponseEntity<String> editInventory(@RequestBody BusInventory businventory){
+        LOGGER.info("Editing inventory for bus number: {}", businventory.getBusnumber());
+        busInventoryService.updateInventory(businventory);
+        LOGGER.info("Edited Businventory for bus number: {}", businventory.getBusnumber());
         return ResponseEntity.ok("Edited Businventory for bus number: " + businventory.getBusnumber());
     }
 
     @DeleteMapping("deleteInventory/{busNumber}")
     public ResponseEntity<String> deleteInventory(@PathVariable String busNumber){
-        businventoryRepository.deleteById(busNumber);
+        LOGGER.info("Deleting inventory for bus number: {}", busNumber);
+        busInventoryService.removeInventory(busNumber);
         return ResponseEntity.ok("Deleted Businventory for bus number: " + busNumber);
     }
 
-    @JmsListener(destination = "payment-service-queue")
-    public void receiveMessage(String message) {
-        LOGGER.info("Received message: {}", message);
-        Booking booking = new Gson().fromJson(message, Booking.class);
-        LOGGER.info("Message Consumed   {}",booking.getBusnumber());
-        Businventory businventory = new Businventory();
-        ResponseEntity<Optional<Businventory>> res = fetchInventory(booking.getBusnumber());
-        businventory.setAvailableseats(String.valueOf(Integer.parseInt(res.getBody().get().getAvailableseats())-Integer.parseInt(booking.getNumberofseats())));
-        businventory.setBusnumber(booking.getBusnumber());
-        editInventory(businventory);
-        jmsTemplate.convertAndSend("inventory-service-queue", message);
-    }
 }
