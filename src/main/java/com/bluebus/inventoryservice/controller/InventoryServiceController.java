@@ -15,14 +15,14 @@ import java.util.Optional;
 public class InventoryServiceController {
     private static final Logger LOGGER = LoggerFactory.getLogger(InventoryServiceController.class);
     @Autowired
-    BusInventoryService busInventoryService;
-
-    public InventoryServiceController(BusInventoryService busInventoryService) {
-        this.busInventoryService = busInventoryService;
-    }
+    private BusInventoryService busInventoryService;
 
     @PostMapping("addInventory")
-    public ResponseEntity<String> addInventory(@RequestBody @NonNull BusInventory businventory){
+    public ResponseEntity<String> addInventory(@RequestBody @NonNull BusInventory businventory, @RequestHeader("Authorization") String token){
+        if (!busInventoryService.validateToken(token)) {
+            LOGGER.info("Unauthorized access attempt with token: {}", token);
+            return ResponseEntity.status(401).body("Unauthorized: Missing or invalid token");
+        }
         LOGGER.info("entered into inventory service");
         busInventoryService.createInventory(businventory);
         LOGGER.info("New Businventory created for bus number: {}", businventory.getBusnumber());
@@ -30,13 +30,21 @@ public class InventoryServiceController {
     }
 
     @GetMapping("fetchInventory/{busNumber}")
-    public ResponseEntity<Optional<BusInventory>> fetchInventory(@PathVariable String busNumber){
+    public ResponseEntity<?> fetchInventory(@PathVariable String busNumber, @RequestHeader("Authorization") String token){
+        if (!busInventoryService.validateToken(token)) {
+            LOGGER.info("Unauthorized access attempt with token: {}", token);
+            return ResponseEntity.status(401).body("Unauthorized: Missing or invalid token");
+        }
         LOGGER.info("Fetching inventory for bus number: {}", busNumber);
         return ResponseEntity.ok(busInventoryService.getBusInventry(busNumber));
     }
 
     @PutMapping("editInventory")
-    public ResponseEntity<String> editInventory(@RequestBody BusInventory businventory){
+    public ResponseEntity<String> editInventory(@RequestBody BusInventory businventory, @RequestHeader("Authorization") String token){
+        if (!busInventoryService.validateToken(token)) {
+            LOGGER.info("Unauthorized access attempt with token: {}", token);
+            return ResponseEntity.status(401).body("Unauthorized: Missing or invalid token");
+        }
         LOGGER.info("Editing inventory for bus number: {}", businventory.getBusnumber());
         busInventoryService.updateInventory(businventory);
         LOGGER.info("Edited Businventory for bus number: {}", businventory.getBusnumber());
@@ -44,7 +52,11 @@ public class InventoryServiceController {
     }
 
     @DeleteMapping("deleteInventory/{busNumber}")
-    public ResponseEntity<String> deleteInventory(@PathVariable String busNumber){
+    public ResponseEntity<String> deleteInventory(@PathVariable String busNumber, @RequestHeader("Authorization") String token){
+        if (!busInventoryService.validateToken(token)) {
+            LOGGER.info("Unauthorized access attempt with token: {}", token);
+            return ResponseEntity.status(401).body("Unauthorized: Missing or invalid token");
+        }
         LOGGER.info("Deleting inventory for bus number: {}", busNumber);
         busInventoryService.removeInventory(busNumber);
         return ResponseEntity.ok("Deleted Businventory for bus number: " + busNumber);

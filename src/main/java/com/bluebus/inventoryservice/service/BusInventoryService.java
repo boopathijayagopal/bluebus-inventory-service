@@ -19,6 +19,9 @@ public class BusInventoryService {
     @Autowired
     BusInventoryRepository businventoryRepository;
 
+    @Autowired
+    private AuthValidationService authValidationService;
+
     public void createInventory(BusInventory businventory) {
         LOGGER.info("Creating new bus inventory for bus number: {}", businventory.getBusnumber());
         businventory.setCreationdate(getDateTime());
@@ -52,5 +55,16 @@ public class BusInventoryService {
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
         LocalDateTime localDateTime = LocalDateTime.now();
         return localDateTime.format(dateTimeFormatter);
+    }
+
+    public boolean validateToken(String token) {
+        LOGGER.info("Validating token: {}", token);
+        // For simplicity, let's assume a valid token is "valid-token"
+        if (token == null || !authValidationService.validateToken(token)) {
+            LOGGER.warn("Invalid token provided: {}", token);
+            return false;
+        }
+        LOGGER.info("Token is valid");
+        return true;
     }
 }
